@@ -1,0 +1,17 @@
+<!-- Contenedor principal de todos los toasts -->
+<div class="fixed top-5 right-5 space-y-3 z-50">
+  
+  <!-- Un div por cada toast (usando *ngFor) -->
+  <div
+    *ngFor="let toast of toasts"
+    (click)="dismissToast(toast.id)"
+    class="cursor-pointer px-4 py-3 rounded-lg shadow-md text-sm font-semibold text-gray-300 bg-gray-700 bg-opacity-80 border-2 transition-all duration-300 backdrop-blur-md"
+    [ngClass]="{
+      'border-[#5c8e00] text-gray-200': toast.type === 'success',
+      'border-red-500 text-gray-200': toast.type === 'error',
+      'border-amber-400 text-gray-200': toast.type === 'info'
+    }"
+  >
+    {{ toast.message }}
+  </div>
+</div>

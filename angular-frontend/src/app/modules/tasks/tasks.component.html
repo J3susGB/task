@@ -1,0 +1,137 @@
+<!-- Fondo general Dark -->
+<div class="min-h-screen p-6 bg-gray-900">
+
+  <!-- Botón Back -->
+  <div>
+    <a routerLink="/"><img src="/icons/atras.png" alt="volver" class="w-10 h-10 mb-6" /></a>
+  </div>
+
+  <!-- Tarjeta principal -->
+  <div class="bg-gray-800 max-w-2xl mx-auto p-8 rounded-2xl shadow-lg space-y-6 border border-gray-700">
+
+    <!-- Título -->
+    <h2 class="text-3xl font-black flex items-center gap-2 text-white">
+      <img src="/icons/task-icon.png" alt="Task icon" class="w-15 h-15 object-contain" />
+      Task List
+    </h2>
+
+    <!-- FILTROS -->
+    <div class="border border-gray-700 bg-gray-700 rounded-md p-4 mb-4">
+      <p class="font-semibold text-gray-200 mb-3">Filters:</p>
+
+      <!-- Buscador -->
+      <div class="relative mb-4">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+          <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103 10.5a7.5 7.5 0 0013.15 6.15z" />
+          </svg>
+        </span>
+
+        <input
+          type="text"
+          [formControl]="searchControl"
+          [disabled]="tasks.length === 0"
+          placeholder="Search tasks..."
+          class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-600 shadow-sm text-gray-100 placeholder-gray-400 bg-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5c8e00] focus:border-[#5c8e00] transition-all disabled:opacity-50 cursor-pointer"
+        />
+      </div>
+
+      <!-- Filtro de completadas -->
+      <select
+        [(ngModel)]="completedFilter"
+        (ngModelChange)="applyFilters()"
+        class="w-full pl-3 pr-4 py-2 rounded-lg border border-gray-600 shadow-sm text-gray-100 bg-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5c8e00] focus:border-[#5c8e00] transition-all disabled:opacity-50 cursor-pointer"
+      >
+        <option value="">All</option>
+        <option value="true">Completed</option>
+        <option value="false">Not Completed</option>
+      </select>
+
+      <!-- Filtro de orden -->
+      <select
+        [(ngModel)]="orderFilter"
+        (ngModelChange)="applyFilters()"
+        class="mt-5 w-full pl-3 pr-4 py-2 rounded-lg border border-gray-600 shadow-sm text-gray-100 bg-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5c8e00] focus:border-[#5c8e00] transition-all disabled:opacity-50 cursor-pointer"
+      >
+        <option value="asc">Oldest First</option>
+        <option value="desc">Newest First</option>
+      </select>
+    </div>
+
+    <hr class="border-t border-gray-700 my-6">
+
+    <!-- FORMULARIO para añadir tareas -->
+    <form [formGroup]="taskForm" (ngSubmit)="onSubmit()" class="flex gap-4 mb-6">
+      <input
+        type="text"
+        formControlName="title"
+        placeholder="Write a task..."
+        class="flex-1 px-4 py-2 rounded-md border border-gray-600 placeholder-gray-400 text-gray-100 bg-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5c8e00] transition"
+      />
+      <button
+        type="submit"
+        [disabled]="taskForm.invalid"
+        class="bg-[#5c8e00] hover:bg-[#5c8e00a8] text-white font-semibold px-5 py-2 rounded-md shadow transition disabled:opacity-50 cursor-pointer"
+      >
+        Add
+      </button>
+    </form>
+
+    <!-- Mostrar errores de validación -->
+    <div *ngIf="taskForm.get('title')?.touched && taskForm.get('title')?.invalid" class="text-sm text-red-400 mb-4">
+      <div *ngIf="taskForm.get('title')?.errors?.['required']">The task title is required.</div>
+      <div *ngIf="taskForm.get('title')?.errors?.['minlength']">Minimum 3 characters required.</div>
+    </div>
+
+    <!-- Botón Completar Todas + Lista de Tareas -->
+    <div class="border border-gray-700 bg-gray-800 rounded-md p-4 mb-6 space-y-4">
+
+      <!-- Botón pequeño alineado a la derecha -->
+      <div class="flex justify-end">
+        <button
+          (click)="completeAllTasks()"
+          class="text-sm text-gray-300 hover:text-[#5c8e00] transition font-medium cursor-pointer"
+        >
+          ✅ Mark all as completed
+        </button>
+      </div>
+
+      <!-- Lista de tareas -->
+      <ul *ngIf="filteredTasks.length > 0; else noTasks" class="space-y-3">
+        <li
+          *ngFor="let task of filteredTasks"
+          class="bg-gray-700 p-3 rounded-md border border-gray-600 flex justify-between items-center shadow-sm"
+        >
+          <div class="flex flex-col md:flex-row md:justify-between md:gap-40">
+            <span
+              (click)="toggleTask(task)"
+              [class.line-through]="task.completed"
+              [class.text-red-500]="task.completed"
+              [class.text-gray-200]="!task.completed"
+              class="cursor-pointer hover:text-[#5c8e00] transition"
+            >
+              {{ task.title }}
+            </span>
+            <span class="text-xs text-gray-400 mt-1 md:mt-1 italic">
+              {{ task.createdAt }}
+            </span>
+          </div>
+
+          <button
+            (click)="deleteTask(task.id)"
+            class="text-red-400 hover:text-red-500 font-bold text-sm px-2 cursor-pointer transform transition-transform duration-300 hover:scale-150"
+          >
+            ✗
+          </button>
+        </li>
+      </ul>
+
+      <!-- Si no hay tareas -->
+      <ng-template #noTasks>
+        <p class="text-gray-500 italic text-center">Nothing here yet...</p>
+      </ng-template>
+
+    </div>
+
+  </div>
+</div>

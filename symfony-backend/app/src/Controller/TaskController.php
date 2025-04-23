@@ -3,32 +3,37 @@
 namespace App\Controller;
 
 use App\Entity\Task;
+use App\Entity\Project;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/tasks')]
+#[IsGranted('IS_AUTHENTICATED_FULLY')]
 class TaskController extends AbstractController
 {
-
     // Marcar todas las tareas como completadas
-    #[Route('/complete-all', name: 'complete_all_tasks', methods: ['PUT'])]
-    public function completeAllTasks(EntityManagerInterface $em): JsonResponse
+    #[Route('/{projectId}/complete-all', name: 'complete_all_tasks', methods: ['PUT'])]
+    public function completeAllTasks(int $projectId, EntityManagerInterface $em): JsonResponse
     {
-        // 1. Obtener todas las tareas
-        $tasks = $em->getRepository(Task::class)->findAll();
+        $user = $this->getUser();
+        $project = $em->getRepository(Project::class)->find($projectId);
 
-        // 2. Marcar cada una como completada
+        if (!$project || $project->getUser()->getId() !== $user->getId()) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
+        $tasks = $em->getRepository(Task::class)->findBy(['project' => $project]);
+
         foreach ($tasks as $task) {
             $task->setCompleted(true);
         }
 
-        // 3. Guardar los cambios en la base de datos
         $em->flush();
 
-        // 4. Devolver todas las tareas actualizadas en formato JSON
         $data = array_map(fn($task) => [
             'id' => $task->getId(),
             'title' => $task->getTitle(),
@@ -39,16 +44,23 @@ class TaskController extends AbstractController
         return $this->json($data);
     }
 
-    // Listar todas las tareas ordenadas 
-    #[Route('/ordered', name: 'ordered_tasks', methods: ['GET'])]
-    public function ordered(Request $request, EntityManagerInterface $em): JsonResponse
+    // Listar todas las tareas ordenadas
+    #[Route('/{projectId}/ordered', name: 'ordered_tasks', methods: ['GET'])]
+    public function ordered(int $projectId, Request $request, EntityManagerInterface $em): JsonResponse
     {
-        $order = strtoupper($request->query->get('order', 'ASC')); // Obtenemos el parámetro 'order' de la URL (?order=ASC o DESC)
+        $order = strtoupper($request->query->get('order', 'ASC'));
         if (!in_array($order, ['ASC', 'DESC'])) {
             return $this->json(['error' => 'Invalid order value. Use ASC or DESC.'], 400);
         }
 
-        $tasks = $em->getRepository(Task::class)->findAllOrderedById($order);
+        $user = $this->getUser();
+        $project = $em->getRepository(Project::class)->find($projectId);
+
+        if (!$project || $project->getUser()->getId() !== $user->getId()) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
+        $tasks = $em->getRepository(Task::class)->findByProjectOrderedById($project, $order);
 
         $data = array_map(fn($task) => [
             'id' => $task->getId(),
@@ -60,29 +72,49 @@ class TaskController extends AbstractController
         return $this->json($data);
     }
 
-    
-    #[Route('', name: 'list_tasks', methods: ['GET'])]
-    public function list(EntityManagerInterface $em): JsonResponse
+    // Listar tareas
+    #[Route('/{projectId}', name: 'list_tasks', methods: ['GET'])]
+    public function list(int $projectId, EntityManagerInterface $em): JsonResponse
     {
-        $tasks = $em->getRepository(Task::class)->findAll();
+        $user = $this->getUser();
+        $project = $em->getRepository(Project::class)->find($projectId);
+
+        if (!$project || $project->getUser()->getId() !== $user->getId()) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
+        $tasks = $em->getRepository(Task::class)->findBy(['project' => $project]);
+
         $data = array_map(fn($task) => [
             'id' => $task->getId(),
             'title' => $task->getTitle(),
             'completed' => $task->getCompleted(),
             'createdAt' => $task->getCreatedAt()?->setTimezone(new \DateTimeZone('Europe/Madrid'))->format('d/m/Y H:i')
         ], $tasks);
+
         return $this->json($data);
     }
 
-    #[Route('', name: 'create_task', methods: ['POST'])]
-    public function create(Request $request, EntityManagerInterface $em): JsonResponse
+    // Crear nueva tarea para un proyecto
+    #[Route('/{projectId}', name: 'create_task', methods: ['POST'])]
+    public function create(int $projectId, Request $request, EntityManagerInterface $em): JsonResponse
     {
+        $user = $this->getUser();
+        $project = $em->getRepository(Project::class)->find($projectId);
+
+        if (!$project || $project->getUser()->getId() !== $user->getId()) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
         $params = json_decode($request->getContent(), true);
         $task = new Task();
         $task->setTitle($params['title'] ?? 'Untitled');
         $task->setCompleted($params['completed'] ?? false);
+        $task->setProject($project);
+        $task->setUser($this->getUser());
         $em->persist($task);
         $em->flush();
+
         return $this->json([
             'id' => $task->getId(),
             'title' => $task->getTitle(),
@@ -91,33 +123,51 @@ class TaskController extends AbstractController
         ]);
     }
 
+    // Eliminar tarea por ID
     #[Route('/{id}', name: 'delete_task', methods: ['DELETE'])]
     public function delete($id, EntityManagerInterface $em): JsonResponse
     {
         $task = $em->getRepository(Task::class)->find($id);
+
         if (!$task) {
             return $this->json(['error' => 'Task not found'], 404);
         }
+
+        if ($task->getProject()->getUser()->getId() !== $this->getUser()->getId()) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
         $em->remove($task);
         $em->flush();
+
         return $this->json(['message' => 'Task deleted']);
     }
 
+    // Actualizar tarea por ID
     #[Route('/{id}', name: 'update_task', methods: ['PUT'])]
     public function update($id, Request $request, EntityManagerInterface $em): JsonResponse
     {
         $task = $em->getRepository(Task::class)->find($id);
+
         if (!$task) {
             return $this->json(['error' => 'Task not found'], 404);
         }
+
+        if ($task->getProject()->getUser()->getId() !== $this->getUser()->getId()) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
         $params = json_decode($request->getContent(), true);
+
         if (isset($params['title'])) {
             $task->setTitle($params['title']);
         }
         if (isset($params['completed'])) {
             $task->setCompleted($params['completed']);
         }
+
         $em->flush();
+
         return $this->json([
             'id' => $task->getId(),
             'title' => $task->getTitle(),
@@ -125,5 +175,4 @@ class TaskController extends AbstractController
             'createdAt' => $task->getCreatedAt()?->setTimezone(new \DateTimeZone('Europe/Madrid'))->format('d/m/Y H:i')
         ]);
     }
-
 }

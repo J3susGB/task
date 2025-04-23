@@ -25,7 +25,7 @@ class Project
     private ?string $description = null;
 
     #[ORM\ManyToOne(inversedBy: 'projects')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')] //Si se elimina un usuario, se eliminan sus proyectos
     private ?User $user = null;
 
     #[ORM\OneToMany(mappedBy: 'project', targetEntity: Task::class, orphanRemoval: true)]

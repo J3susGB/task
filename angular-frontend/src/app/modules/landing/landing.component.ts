@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-landing',
@@ -12,8 +13,13 @@ import { CommonModule } from '@angular/common';
 })
 export class LandingComponent {
   loginForm: FormGroup;
+  loginError: string | null = null;
 
-  constructor(private fb: FormBuilder) {
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private router: Router
+  ) {
     // Creamos el formulario reactivo con validaciones
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]], // Email requerido y válido
@@ -24,13 +30,18 @@ export class LandingComponent {
   // Función que se llama al enviar el formulario
   onSubmit() {
     if (this.loginForm.invalid) {
-      console.log('Formulario inválido');
       return;
-    } else {
-      const { email, password } = this.loginForm.value;
-
-      // Aquí más adelante haremos la llamada al backend
-      console.log('Enviar login a backend', { email, password });
     }
+
+    const { email, password } = this.loginForm.value;
+
+    this.authService.login({ email, password }).subscribe({
+      next: () => {
+        this.router.navigate(['/projects']); // redirige si login ok
+      },
+      error: () => {
+        this.loginError = 'Credenciales inválidas';
+      }
+    });
   }
 }

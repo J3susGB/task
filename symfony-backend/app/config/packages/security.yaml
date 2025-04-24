@@ -10,10 +10,12 @@ security:
                 property: email
 
     firewalls:
+        # Desactivamos seguridad para rutas internas del entorno dev
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
+        # Manejamos login por JSON (JWT)
         login:
             pattern: ^/api/login_check
             stateless: true
@@ -24,6 +26,7 @@ security:
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
 
+        # Todas las rutas que empiecen por /api serán protegidas con JWT
         api:
             pattern: ^/api
             stateless: true
@@ -35,7 +38,13 @@ security:
             logout: ~
 
     access_control:
+        # Permitimos acceso público solo a la ruta de login
         - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
+
+        # Protegemos rutas de administración: solo para usuarios con ROLE_ADMIN
+        - { path: ^/api/admin, roles: ROLE_ADMIN }
+
+        # El resto de rutas /api requiere que el usuario esté autenticado (logueado)
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 
 when@test:

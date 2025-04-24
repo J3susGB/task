@@ -20,7 +20,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class AdminController extends AbstractController
 {
     // Ruta protegida para obtener todos los usuarios registrados en el sistema
-    #[Route('/api/admin/users', name: 'admin_users', methods: ['GET'])]
+    #[Route('/users', name: 'admin_users', methods: ['GET'])]
     public function listUsers(UserRepository $userRepo): JsonResponse
     {
         // Obtenemos todos los usuarios desde la base de datos

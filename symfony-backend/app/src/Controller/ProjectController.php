@@ -11,11 +11,11 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/projects', name: 'api_projects_')]
+#[IsGranted('ROLE_USER')] // Protege todo el controlador para usuarios autenticados
 class ProjectController extends AbstractController
 {
     // Listar todos los proyectos del usuario autenticado
     #[Route('', name: 'list', methods: ['GET'])]
-    #[IsGranted('ROLE_USER')]
     public function list(): JsonResponse
     {
         $user = $this->getUser();
@@ -35,7 +35,6 @@ class ProjectController extends AbstractController
 
     // Crear un nuevo proyecto asociado al usuario autenticado
     #[Route('', name: 'create', methods: ['POST'])]
-    #[IsGranted('ROLE_USER')]
     public function create(Request $request, EntityManagerInterface $em): JsonResponse
     {
         $user = $this->getUser();
@@ -64,19 +63,18 @@ class ProjectController extends AbstractController
 
     // Obtener todas las tareas asociadas a un proyecto concreto
     #[Route('/{id}/tasks', name: 'tasks', methods: ['GET'])]
-    #[IsGranted('ROLE_USER')]
     public function getTasksByProject(Project $project): JsonResponse
     {
-        // Verificamos que el proyecto pertenece al usuario autenticado
         $user = $this->getUser();
+
+        // Verificamos que el proyecto pertenece al usuario autenticado
         if ($project->getUser() !== $user) {
             return $this->json(['error' => 'Access denied'], 403);
         }
 
-        // Recogemos las tareas del proyecto
         $tasks = $project->getTasks();
-
         $data = [];
+
         foreach ($tasks as $task) {
             $data[] = [
                 'id' => $task->getId(),

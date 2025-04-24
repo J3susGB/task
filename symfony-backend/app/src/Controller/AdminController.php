@@ -2,12 +2,14 @@
 
 namespace App\Controller;
 
+use App\Entity\User;
 use App\Repository\ProjectRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -123,5 +125,51 @@ final class AdminController extends AbstractController
 
         // Devolvemos todos los proyectos en formato JSON
         return $this->json($data);
+    }
+
+    // Crear un nuevo usuario (por el admin)
+    // Endpoint: POST /api/admin/users
+    #[Route('/users', name: 'create_user', methods: ['POST'])]
+    public function createUser(
+        Request $request,
+        EntityManagerInterface $em,
+        UserPasswordHasherInterface $passwordHasher
+    ): JsonResponse {
+        // 1. Recibimos los datos del nuevo usuario
+        $data = json_decode($request->getContent(), true);
+
+        $email = $data['email'] ?? null;
+        $password = $data['password'] ?? null;
+        $roles = $data['roles'] ?? ['ROLE_USER']; // por defecto, usuario normal
+
+        // 2. Validamos email y contraseña
+        if (!$email || !$password) {
+            return $this->json(['error' => 'Email and password are required'], 400);
+        }
+
+        // 3. Comprobamos que no exista un usuario con ese email
+        if ($em->getRepository(User::class)->findOneBy(['email' => $email])) {
+            return $this->json(['error' => 'Email already in use'], 409);
+        }
+
+        // 4. Creamos el nuevo usuario
+        $user = new User();
+        $user->setEmail($email);
+        $user->setRoles($roles);
+        $hashedPassword = $passwordHasher->hashPassword($user, $password);
+        $user->setPassword($hashedPassword);
+
+        $em->persist($user);
+        $em->flush();
+
+        // 5. Devolvemos respuesta JSON
+        return $this->json([
+            'message' => 'User created',
+            'user' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'roles' => $user->getRoles()
+            ]
+        ], 201);
     }
 }

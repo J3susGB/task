@@ -1,3 +1,20 @@
+<!-- Botonera de Admin -->
+<div class="flex justify-end bg-gray-900 p-5 cursor-pointer">
+  <a
+    *ngIf="isAdmin"
+    routerLink="/admin"
+    class="hover:text-[#5c8e00] text-white font-semibold px-4 py-2 transition"
+  >
+    Administración
+  </a>
+  <a
+    routerLink="#"
+    class="hover:text-[#5c8e00] text-white font-semibold px-4 py-2 transition"
+  >
+    Desconectar
+  </a>
+</div>
+
 <!-- Fondo oscuro general -->
 <div class="min-h-screen bg-gray-900 p-6 text-white flex items-center justify-center">
 

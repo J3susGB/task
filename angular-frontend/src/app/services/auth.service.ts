@@ -46,4 +46,25 @@ export class AuthService {
   isAuthenticated(): boolean {
     return !!this.getToken(); // Devuelve true si hay token, false si no
   }
+
+  /**
+   * Decodifica el token JWT para extraer los roles
+   */
+  getUserRoles(): string[] {
+    const token = this.getToken();
+    if (!token) return [];
+
+    // Decodifica la parte intermedia del JWT (payload)
+    const payload = token.split('.')[1];
+    const decoded = JSON.parse(atob(payload));
+
+    return decoded.roles || []; // roles es un array del tipo ['ROLE_USER', 'ROLE_ADMIN']
+  }
+
+  /**
+   * Verifica si el usuario tiene el rol de administrador
+   */
+  isAdmin(): boolean {
+    return this.getUserRoles().includes('ROLE_ADMIN');
+  }
 }

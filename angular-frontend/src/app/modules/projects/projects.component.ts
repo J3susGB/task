@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../services/auth.service'; // importación AuthService
 
 @Component({
   selector: 'app-projects',
@@ -21,15 +22,20 @@ export class ProjectsComponent implements OnInit {
   // Mensaje de error si ocurre algún problema al cargar los proyectos
   error = '';
 
+  isAdmin: boolean = false;
+
   constructor(
     private http: HttpClient,   // Cliente HTTP para llamar al backend
-    private router: Router       // Router para posibles redirecciones
+    private router: Router,      // Router para posibles redirecciones
+    private authService: AuthService // Inyecto // AuthService
   ) {}
 
   /**
    * ngOnInit: función que se ejecuta automáticamente al cargar el componente
    */
   ngOnInit(): void {
+    this.isAdmin = this.authService.isAdmin();
+
     // Llamamos al backend para obtener los proyectos del usuario actual
     this.http.get<any[]>('http://localhost:8000/api/projects').subscribe({
       next: (data) => {

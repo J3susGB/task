@@ -1,50 +1,87 @@
-<!-- Botonera de Admin -->
-<div class="flex justify-end bg-gray-900 p-5 cursor-pointer">
-  <a
-    *ngIf="isAdmin"
-    routerLink="/admin"
-    class="hover:text-[#5c8e00] text-white font-semibold px-4 py-2 transition"
-  >
+<!-- Botonera superior -->
+<div class="flex justify-end bg-gray-900 p-5 cursor-pointer gap-4">
+  <a *ngIf="isAdmin" routerLink="/admin" class="hover:text-[#5c8e00] text-white font-semibold px-4 py-2 transition">
     Administración
   </a>
-  <a
-    routerLink="#"
-    class="hover:text-[#5c8e00] text-white font-semibold px-4 py-2 transition"
-  >
+  <a (click)="logout()" class="hover:text-[#5c8e00] text-white font-semibold px-4 py-2 transition">
     Desconectar
   </a>
 </div>
 
-<!-- Fondo oscuro general -->
-<div class="min-h-screen bg-gray-900 p-6 text-white flex items-center justify-center">
+<!-- Fondo general -->
+<div class="min-h-screen bg-gray-900 p-6 text-white">
 
-    <!-- Mostrar error -->
-    <p *ngIf="error" class="text-red-400">{{ error }}</p>
-  
-    <!-- Mostrar mensaje si no hay proyectos -->
-    <div *ngIf="!isLoading && projects.length === 0" class="text-center">
-      <h2 class="text-3xl font-bold text-gray-200 mb-4">¡Todavía no tienes proyectos!</h2>
-      <p class="text-gray-400">Crea tu primer proyecto y empieza a organizarte</p>
-    </div>
-  
-    <!-- Lista de proyectos -->
+  <!-- Botón añadir proyecto -->
+  <div class="flex justify-end mb-6">
+    <button (click)="openForm()" class="bg-[#5c8e00] hover:bg-[#5c8e00a8] text-white font-semibold px-4 py-2 rounded transition hover:cursor-pointer">
+      ➕ Añadir proyecto
+    </button>
+  </div>
+
+  <!-- Formulario crear/editar -->
+  <div *ngIf="showForm" class="mb-6 bg-gray-800 p-5 rounded-xl border border-gray-700">
+    <form [formGroup]="projectForm" (ngSubmit)="submitProject()" class="space-y-4">
+      <input formControlName="title" placeholder="Título del proyecto" class="w-full px-4 py-2 rounded bg-gray-900 text-white border border-gray-600" />
+      <textarea formControlName="description" placeholder="Descripción" class="w-full px-4 py-2 rounded bg-gray-900 text-white border border-gray-600"></textarea>
+      <div class="flex justify-end gap-3">
+        <button type="submit" class="bg-[#5c8e00] hover:bg-[#5c8e00a8] px-4 py-2 rounded text-white font-semibold cursor-pointer">
+          {{ isEditing ? 'Actualizar' : 'Crear' }}
+        </button>
+        <button type="button" (click)="cancelEdit()" class="text-sm text-gray-400 hover:text-amber-500 cursor-pointer">Cancelar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Error -->
+  <p *ngIf="error" class="text-red-400 text-center mb-6">{{ error }}</p>
+
+  <!-- Sin proyectos -->
+  <div *ngIf="!isLoading && projects.length === 0" class="text-center mt-20">
+    <h2 class="text-3xl font-bold text-gray-200 mb-4">¡Todavía no tienes proyectos!</h2>
+    <p class="text-gray-400">Crea tu primer proyecto y empieza a organizarte</p>
+  </div>
+
+  <!-- Lista de proyectos -->
+  <div *ngIf="projects.length > 0" class="grid gap-6" [ngClass]="{
+    'grid-cols-1': true,
+    'sm:grid-cols-2': true,
+    'md:grid-cols-3': true,
+    'lg:grid-cols-4': true
+  }">
     <div
-      *ngIf="projects.length > 0"
-      class="grid gap-6 w-full"
-      [ngClass]="{
-        'grid-cols-1': true,
-        'sm:grid-cols-2': true,
-        'md:grid-cols-3': true,
-        'lg:grid-cols-4': true
-      }"
+      *ngFor="let project of projects"
+      (click)="goToTasks(project.id)"
+      class="bg-gray-800 border border-gray-700 p-5 rounded-xl shadow-md transform transition-transform duration-300 hover:scale-105 cursor-pointer block hover:shadow-lg"
     >
-      <div
-        *ngFor="let project of projects"
-        class="bg-gray-800 border border-gray-700 p-5 rounded-xl shadow-md hover:shadow-lg transition"
-      >
-        <h3 class="text-xl font-semibold text-[#71B100] mb-2">{{ project.title }}</h3>
-        <p class="text-gray-300 text-sm">{{ project.description || 'Sin descripción' }}</p>
+      <!-- Título del proyecto -->
+      <h3 class="text-xl font-semibold text-[#71B100] mb-2">{{ project.title }}</h3>
+
+      <!-- Descripción -->
+      <p class="text-gray-300 text-sm">{{ project.description || 'Sin descripción' }}</p>
+
+      <!-- Muestra email del dueño si usuario es admin -->
+      <p *ngIf="isAdmin" class="text-xs text-gray-400 italic">
+        Propietario: {{ project.user }}
+      </p>
+
+      <!-- Botones de acción -->
+      <div class="flex justify-end gap-3 mt-4 text-sm z-10">
+        <!-- Editar solo si eres el dueño -->
+        <button
+          *ngIf="project.user === currentUserEmail"
+          (click)="editProject(project); $event.stopPropagation()"
+          class="text-[#5c8e00] hover:text-[#5c8e00a8] cursor-pointer transition"
+        >
+          Editar
+        </button>
+        <!-- Eliminar siempre -->
+        <button
+          (click)="deleteProject(project.id); $event.stopPropagation()"
+          class="text-red-400 hover:text-red-500 cursor-pointer transition"
+        >
+          Eliminar
+        </button>
       </div>
     </div>
   </div>
-  
+</div>

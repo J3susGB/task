@@ -16,22 +16,31 @@ class ProjectController extends AbstractController
 {
     // Listar todos los proyectos del usuario autenticado
     #[Route('', name: 'list', methods: ['GET'])]
-    public function list(): JsonResponse
+    public function list(EntityManagerInterface $em): JsonResponse
     {
         $user = $this->getUser();
-        $projects = $user->getProjects();
+
+        // Si eres admin, ves todos los proyectos
+        if ($this->isGranted('ROLE_ADMIN')) {
+            $projects = $em->getRepository(Project::class)->findAll();
+        } else {
+            // Si eres usuario normal, solo tus proyectos
+            $projects = $user->getProjects();
+        }
 
         $data = [];
         foreach ($projects as $project) {
             $data[] = [
                 'id' => $project->getId(),
                 'title' => $project->getTitle(),
-                'description' => $project->getDescription()
+                'description' => $project->getDescription(),
+                'user' => $project->getUser()->getEmail()
             ];
         }
 
         return $this->json($data);
     }
+
 
     // Crear un nuevo proyecto asociado al usuario autenticado
     #[Route('', name: 'create', methods: ['POST'])]
@@ -85,5 +94,58 @@ class ProjectController extends AbstractController
         }
 
         return $this->json($data);
+    }
+
+    /**
+     * Actualizar un proyecto (solo si pertenece al usuario autenticado)
+     */
+    #[Route('/{id}', name: 'update', methods: ['PUT'])]
+    public function updateProject(int $id, Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $project = $em->getRepository(Project::class)->find($id);
+        $user = $this->getUser();
+
+        if (!$project || $project->getUser() !== $user) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        if (isset($data['title'])) {
+            $project->setTitle($data['title']);
+        }
+
+        if (array_key_exists('description', $data)) {
+            $project->setDescription($data['description']);
+        }
+
+        $em->flush();
+
+        return $this->json(['message' => 'Project updated successfully']);
+    }
+
+    /**
+     * Eliminar un proyecto (solo si pertenece al usuario autenticado)
+     */
+    #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
+    public function deleteProject(int $id, EntityManagerInterface $em): JsonResponse
+    {
+        $project = $em->getRepository(Project::class)->find($id);
+        $user = $this->getUser();
+
+        // Verificamos que el proyecto exista
+        if (!$project) {
+            return $this->json(['error' => 'Project not found'], 404);
+        }
+
+        // Si el usuario no es el propietario y no es admin, denegar acceso
+        if ($project->getUser() !== $user && !$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
+        $em->remove($project);
+        $em->flush();
+
+        return $this->json(['message' => 'Project deleted successfully']);
     }
 }

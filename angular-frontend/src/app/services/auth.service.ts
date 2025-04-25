@@ -67,4 +67,17 @@ export class AuthService {
   isAdmin(): boolean {
     return this.getUserRoles().includes('ROLE_ADMIN');
   }
+
+  // email del proyecto
+  getCurrentUserEmail(): string | null {
+    const token = this.getToken();
+    if (!token) return null;
+  
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.username || null;
+    } catch {
+      return null;
+    }
+  }
 }

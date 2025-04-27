@@ -5,6 +5,8 @@ import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 
+import { ToastrService } from 'ngx-toastr'; // <--- ¡Nuevo!
+
 @Component({
   selector: 'app-projects',
   standalone: true,
@@ -18,22 +20,21 @@ export class ProjectsComponent implements OnInit {
   isLoading = true;
   error = '';
 
-  // Variables del formulario
   showForm = false;
   projectForm: FormGroup;
   isEditing = false;
   editingProjectId: number | null = null;
 
   isAdmin: boolean = false;
-  currentUserEmail: string | null = null; // email del usuario logueado
+  currentUserEmail: string | null = null;
 
   constructor(
     private http: HttpClient,
     private router: Router,
     private fb: FormBuilder,
-    private authService: AuthService
+    private authService: AuthService,
+    private toastr: ToastrService // <--- ¡Nuevo!
   ) {
-    // Inicializamos el formulario reactivo con validaciones
     this.projectForm = this.fb.group({
       title: ['', Validators.required],
       description: ['']
@@ -42,11 +43,10 @@ export class ProjectsComponent implements OnInit {
 
   ngOnInit(): void {
     this.isAdmin = this.authService.isAdmin();
-    this.currentUserEmail = this.authService.getCurrentUserEmail(); // Obtenemos email
+    this.currentUserEmail = this.authService.getCurrentUserEmail();
     this.loadProjects();
   }
 
-  // Cargar proyectos desde el backend
   loadProjects(): void {
     this.http.get<any[]>('http://localhost:8000/api/projects').subscribe({
       next: (data) => {
@@ -60,7 +60,6 @@ export class ProjectsComponent implements OnInit {
     });
   }
 
-  // Mostrar formulario para crear nuevo proyecto
   openForm(): void {
     this.showForm = true;
     this.projectForm.reset();
@@ -68,7 +67,6 @@ export class ProjectsComponent implements OnInit {
     this.editingProjectId = null;
   }
 
-  // Cancelar creación o edición
   cancelEdit(): void {
     this.showForm = false;
     this.projectForm.reset();
@@ -76,20 +74,17 @@ export class ProjectsComponent implements OnInit {
     this.editingProjectId = null;
   }
 
-  // Enviar formulario (crear o editar)
   submitProject(): void {
     if (this.projectForm.invalid) return;
 
     const data = this.projectForm.value;
 
     if (this.isEditing && this.editingProjectId) {
-      // Editar proyecto
       this.http.put(`http://localhost:8000/api/projects/${this.editingProjectId}`, data).subscribe(() => {
         this.loadProjects();
         this.cancelEdit();
       });
     } else {
-      // Crear nuevo proyecto
       this.http.post('http://localhost:8000/api/projects', data).subscribe(() => {
         this.loadProjects();
         this.cancelEdit();
@@ -97,7 +92,6 @@ export class ProjectsComponent implements OnInit {
     }
   }
 
-  // Cargar proyecto en el formulario para editar
   editProject(project: any): void {
     this.openForm();
     this.isEditing = true;
@@ -108,7 +102,6 @@ export class ProjectsComponent implements OnInit {
     });
   }
 
-  // Eliminar proyecto
   deleteProject(id: number): void {
     if (confirm('¿Estás seguro de eliminar este proyecto?')) {
       this.http.delete(`http://localhost:8000/api/projects/${id}`).subscribe(() => {
@@ -117,14 +110,24 @@ export class ProjectsComponent implements OnInit {
     }
   }
 
-  // Cerrar sesión
   logout(): void {
     this.authService.logout();
   }
 
-  // Ir a task de cada proyecto
   goToTasks(projectId: number): void {
     this.router.navigate(['/tasks', projectId]);
   }
 
+  canAccessProject(project: any): boolean {
+    return project.user === this.currentUserEmail;
+  }
+
+  showNoAccess(): void {
+    this.toastr.warning(
+      '<span style="font-size: 1.5rem; margin-right: 8px;">⚠️</span> No puedes acceder a las tareas de este proyecto.',
+      'Acceso Denegado'
+    );
+  }  
+  
+  
 }

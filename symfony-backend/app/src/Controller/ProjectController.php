@@ -148,4 +148,17 @@ class ProjectController extends AbstractController
 
         return $this->json(['message' => 'Project deleted successfully']);
     }
+
+    // Obtener el email del dueño de un proyecto
+    #[Route('/{id}/owner', name: 'get_owner', methods: ['GET'])]
+    public function getOwner(int $id, EntityManagerInterface $em): JsonResponse
+    {
+        $project = $em->getRepository(Project::class)->find($id);
+
+        if (!$project) {
+            return $this->json(['error' => 'Project not found'], 404);
+        }
+
+        return $this->json(['email' => $project->getUser()->getEmail()]);
+    }
 }

@@ -1,2 +1,12 @@
 /* You can add global styles to this file, and also import other style files */
 @import "tailwindcss";
+
+.toast-top-right {
+    top: 1rem;
+    right: 1rem;
+    left: auto;
+    bottom: auto;
+    position: fixed;
+    z-index: 9999;
+  }
+  

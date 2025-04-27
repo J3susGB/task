@@ -50,8 +50,10 @@
   }">
     <div
       *ngFor="let project of projects"
-      (click)="goToTasks(project.id)"
-      class="bg-gray-800 border border-gray-700 p-5 rounded-xl shadow-md transform transition-transform duration-300 hover:scale-105 cursor-pointer block hover:shadow-lg"
+      (click)="canAccessProject(project) ? goToTasks(project.id) : showNoAccess()"
+      [class.cursor-pointer]="canAccessProject(project)"
+      [class.cursor-not-allowed]="!canAccessProject(project)"
+      class="bg-gray-800 border border-gray-700 p-5 rounded-xl shadow-md transform transition-transform duration-300 hover:scale-105 hover:shadow-lg block"
     >
       <!-- Título del proyecto -->
       <h3 class="text-xl font-semibold text-[#71B100] mb-2">{{ project.title }}</h3>

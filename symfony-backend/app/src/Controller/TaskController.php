@@ -15,7 +15,6 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('IS_AUTHENTICATED_FULLY')]
 class TaskController extends AbstractController
 {
-    // Marcar todas las tareas como completadas
     #[Route('/{projectId}/complete-all', name: 'complete_all_tasks', methods: ['PUT'])]
     public function completeAllTasks(int $projectId, EntityManagerInterface $em): JsonResponse
     {
@@ -37,14 +36,13 @@ class TaskController extends AbstractController
         $data = array_map(fn($task) => [
             'id' => $task->getId(),
             'title' => $task->getTitle(),
-            'completed' => $task->getCompleted(),
+            'completed' => $task->isCompleted(),
             'createdAt' => $task->getCreatedAt()?->setTimezone(new \DateTimeZone('Europe/Madrid'))->format('d/m/Y H:i')
         ], $tasks);
 
         return $this->json($data);
     }
 
-    // Listar todas las tareas ordenadas
     #[Route('/{projectId}/ordered', name: 'ordered_tasks', methods: ['GET'])]
     public function ordered(int $projectId, Request $request, EntityManagerInterface $em): JsonResponse
     {
@@ -65,14 +63,13 @@ class TaskController extends AbstractController
         $data = array_map(fn($task) => [
             'id' => $task->getId(),
             'title' => $task->getTitle(),
-            'completed' => $task->getCompleted(),
+            'completed' => $task->isCompleted(),
             'createdAt' => $task->getCreatedAt()?->setTimezone(new \DateTimeZone('Europe/Madrid'))->format('d/m/Y H:i')
         ], $tasks);
 
         return $this->json($data);
     }
 
-    // Listar tareas
     #[Route('/{projectId}', name: 'list_tasks', methods: ['GET'])]
     public function list(int $projectId, EntityManagerInterface $em): JsonResponse
     {
@@ -88,22 +85,31 @@ class TaskController extends AbstractController
         $data = array_map(fn($task) => [
             'id' => $task->getId(),
             'title' => $task->getTitle(),
-            'completed' => $task->getCompleted(),
+            'completed' => $task->isCompleted(),
             'createdAt' => $task->getCreatedAt()?->setTimezone(new \DateTimeZone('Europe/Madrid'))->format('d/m/Y H:i')
         ], $tasks);
 
         return $this->json($data);
     }
 
-    // Crear nueva tarea para un proyecto
     #[Route('/{projectId}', name: 'create_task', methods: ['POST'])]
     public function create(int $projectId, Request $request, EntityManagerInterface $em): JsonResponse
     {
         $user = $this->getUser();
         $project = $em->getRepository(Project::class)->find($projectId);
 
-        if (!$project || $project->getUser()->getId() !== $user->getId()) {
-            return $this->json(['error' => 'Access denied'], 403);
+        if (!$project) {
+            return $this->json(['error' => 'Project not found'], 404);
+        }
+
+        if ($project->getUser()->getId() !== $user->getId() && !$this->isGranted('ROLE_ADMIN')) {
+            return $this->json([
+                'error' => 'Access denied',
+                'reason' => 'You are neither the owner nor an admin',
+                'projectOwnerId' => $project->getUser()->getId(),
+                'loggedUserId' => $user->getId(),
+                'isAdmin' => $this->isGranted('ROLE_ADMIN')
+            ], 403);
         }
 
         $params = json_decode($request->getContent(), true);
@@ -111,19 +117,19 @@ class TaskController extends AbstractController
         $task->setTitle($params['title'] ?? 'Untitled');
         $task->setCompleted($params['completed'] ?? false);
         $task->setProject($project);
-        $task->setUser($this->getUser());
+        $task->setUser($user);
+
         $em->persist($task);
         $em->flush();
 
         return $this->json([
             'id' => $task->getId(),
             'title' => $task->getTitle(),
-            'completed' => $task->getCompleted(),
+            'completed' => $task->isCompleted(),
             'createdAt' => $task->getCreatedAt()?->setTimezone(new \DateTimeZone('Europe/Madrid'))->format('d/m/Y H:i')
         ]);
     }
 
-    // Eliminar tarea por ID
     #[Route('/{id}', name: 'delete_task', methods: ['DELETE'])]
     public function delete($id, EntityManagerInterface $em): JsonResponse
     {
@@ -143,7 +149,6 @@ class TaskController extends AbstractController
         return $this->json(['message' => 'Task deleted']);
     }
 
-    // Actualizar tarea por ID
     #[Route('/{id}', name: 'update_task', methods: ['PUT'])]
     public function update($id, Request $request, EntityManagerInterface $em): JsonResponse
     {
@@ -171,7 +176,7 @@ class TaskController extends AbstractController
         return $this->json([
             'id' => $task->getId(),
             'title' => $task->getTitle(),
-            'completed' => $task->getCompleted(),
+            'completed' => $task->isCompleted(),
             'createdAt' => $task->getCreatedAt()?->setTimezone(new \DateTimeZone('Europe/Madrid'))->format('d/m/Y H:i')
         ]);
     }

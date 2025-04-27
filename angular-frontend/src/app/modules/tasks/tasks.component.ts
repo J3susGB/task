@@ -1,11 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators, FormsModule } from '@angular/forms';
 
 import { TaskService } from '../../shared/services/task-service.service';
 import { Task } from '../../shared/interfaces/task';
 import { ToastService } from '../../shared/services/toast.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-tasks',
@@ -13,8 +14,8 @@ import { ToastService } from '../../shared/services/toast.service';
   imports: [
     CommonModule,
     RouterModule,
-    ReactiveFormsModule, // Activa los formularios reactivos
-    FormsModule // FormsModule para [(ngModel)]
+    ReactiveFormsModule,
+    FormsModule
   ],
   templateUrl: './tasks.component.html',
   styleUrls: ['./tasks.component.scss']
@@ -24,33 +25,47 @@ export class TasksComponent implements OnInit {
   filteredTasks: Task[] = [];
   taskForm!: FormGroup;
   searchControl = new FormControl('');
-
   completedFilter: string = '';
   orderFilter: string = 'asc';
+  projectId!: number;
+  canEdit: boolean = false;
 
   constructor(
     private taskService: TaskService,
     private fb: FormBuilder,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private route: ActivatedRoute,
+    private router: Router,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
+    const paramId = this.route.snapshot.paramMap.get('projectId');
+  
+    if (!paramId) {
+      this.toastService.showToast('❌ Project ID not found in URL', 'error');
+      this.router.navigate(['/projects']);
+      return;
+    }
+  
+    this.projectId = Number(paramId);
+  
+    if (isNaN(this.projectId) || this.projectId <= 0) {
+      this.toastService.showToast('❌ Invalid project ID', 'error');
+      this.router.navigate(['/projects']);
+      return;
+    }
+  
     this.taskForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(3)]]
     });
-
+  
     this.loadTasks();
-
-    this.searchControl.valueChanges.subscribe((value: string | null) => {
-      const safeSearch = value ?? '';
-      this.filteredTasks = this.tasks.filter(task =>
-        task.title.toLowerCase().includes(safeSearch.toLowerCase())
-      );
-    });
   }
+  
 
   loadTasks(): void {
-    this.taskService.getTasks().subscribe({
+    this.taskService.getTasksByProject(this.projectId).subscribe({
       next: (tasks) => {
         this.tasks = tasks;
         this.filteredTasks = this.tasks;
@@ -63,11 +78,16 @@ export class TasksComponent implements OnInit {
   addTask(title: string): void {
     if (!title.trim()) return;
 
-    const newTask: Task = { id: 0, title, completed: false };
+    const newTask: Partial<Task> = { title, completed: false };
 
-    this.taskService.addTask(newTask).subscribe(() => {
-      this.loadTasks();
-      this.toastService.showToast('✅ Task added successfully', 'success');
+    this.taskService.addTaskToProject(this.projectId, newTask).subscribe({
+      next: () => {
+        this.loadTasks();
+        this.toastService.showToast('✅ Task added successfully', 'success');
+      },
+      error: () => {
+        this.toastService.showToast('❌ Error creating task', 'error');
+      }
     });
   }
 
@@ -84,9 +104,6 @@ export class TasksComponent implements OnInit {
   }
 
   onSubmit(): void {
-    console.log('Formulario enviado');
-    console.log(this.taskForm.value);
-
     if (this.taskForm.valid) {
       const title = this.taskForm.value.title;
       this.addTask(title);
@@ -108,7 +125,7 @@ export class TasksComponent implements OnInit {
   }
 
   completeAllTasks(): void {
-    this.taskService.completeAllTasks().subscribe({
+    this.taskService.completeAllTasks(this.projectId).subscribe({
       next: (updatedTasks) => {
         this.tasks = updatedTasks;
         this.filteredTasks = updatedTasks;
@@ -120,5 +137,8 @@ export class TasksComponent implements OnInit {
       }
     });
   }
-  
+
+  goBack(): void {
+    this.router.navigate(['/projects']);
+  }
 }

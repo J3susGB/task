@@ -19,9 +19,9 @@ class Task
     #[Groups(['task_read'])]
     private ?string $title = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['task_read'])]
-    private ?string $completed = null;
+    #[ORM\Column(type: 'boolean')]
+    private bool $completed = false;
+
 
     #[ORM\Column(type: 'datetime')]
     #[Groups(['task_read'])]
@@ -57,15 +57,14 @@ class Task
         return $this;
     }
 
-    public function getCompleted(): ?string
+    public function isCompleted(): bool
     {
         return $this->completed;
     }
 
-    public function setCompleted(?string $completed): static
+    public function setCompleted(bool $completed): static
     {
         $this->completed = $completed;
-
         return $this;
     }
 

@@ -8,5 +8,5 @@ export const routes: Routes = [
     { path: '', component: LandingComponent },
     { path: 'projects', component: ProjectsComponent, canActivate: [AuthGuard] },
     { path: 'tasks', component: TasksComponent, canActivate: [AuthGuard] },
-    { path: 'tasks/:id', component: TasksComponent, canActivate: [AuthGuard] }
+    { path: 'tasks/:projectId', component: TasksComponent, canActivate: [AuthGuard] }
 ];

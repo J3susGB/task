@@ -1,0 +1,131 @@
+<!-- Fondo general Dark -->
+<div
+	class="min-h-screen p-6 bg-gray-900">
+
+	<!-- Botonera superior -->
+	<div class="flex justify-end bg-gray-900 p-5 cursor-pointer gap-4">
+		<a routerLink="/projects" class="hover:text-[#5c8e00] text-white font-semibold px-4 py-2 transition">
+			Proyectos
+		</a>
+		<a (click)="logout()" class="hover:text-[#5c8e00] text-white font-semibold px-4 py-2 transition">
+			Desconectar
+		</a>
+	</div>
+
+	<!-- Contenedor principal -->
+	<div
+		class="bg-gray-800 max-w-4xl mx-auto p-8 rounded-2xl shadow-lg space-y-8 border border-gray-700">
+
+		<!-- Título -->
+		<h2 class="text-3xl font-black flex items-center gap-2 text-white">Administración de usuarios</h2>
+
+		<!-- Formulario Crear/Editar -->
+		<form [formGroup]="userForm" (ngSubmit)="onSubmit()" [ngClass]="{'editing-form': editingUserId !== null}" class="space-y-4">
+
+      <!-- Campo Email -->
+      <div>
+        <input 
+          type="email" 
+          formControlName="email" 
+          placeholder="User Email"
+          class="w-full p-3 rounded-lg border border-gray-600 text-gray-100 bg-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5c8e00]"/>
+        <div *ngIf="userForm.get('email')?.invalid && (userForm.get('email')?.dirty || userForm.get('email')?.touched)" class="text-red-500 text-sm mt-1">
+          <div *ngIf="userForm.get('email')?.errors?.['required']">Email es obligatorio.</div>
+          <div *ngIf="userForm.get('email')?.errors?.['email']">Debe ser un email válido.</div>
+        </div>
+      </div>
+    
+      <!-- Campo Password -->
+      <div>
+        <input 
+          type="password" 
+          formControlName="password"
+          placeholder="Password (mínimo 6 caracteres)" 
+          class="w-full p-3 rounded-lg border border-gray-600 text-gray-100 bg-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5c8e00]"
+        />
+        <!-- Mensaje de error del Password -->
+        <div *ngIf="userForm.get('password')?.invalid && (userForm.get('password')?.dirty || userForm.get('password')?.touched)" class="text-red-500 text-sm mt-1">
+          <div *ngIf="userForm.get('password')?.errors?.['required']">
+            El password es obligatorio
+          </div>
+          <div *ngIf="userForm.get('password')?.errors?.['minlength']">
+            El password debe tener al menos 6 caracteres
+          </div>
+        </div>
+      </div>
+    
+      <!-- Campo Roles -->
+      <div>
+        <input 
+          type="text" 
+          formControlName="roles" 
+          placeholder="Roles (ej: ROLE_USER,ROLE_ADMIN)"
+          class="w-full p-3 rounded-lg border border-gray-600 text-gray-100 bg-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5c8e00]"/>
+        <div *ngIf="userForm.get('roles')?.invalid && (userForm.get('roles')?.dirty || userForm.get('roles')?.touched)" class="text-red-500 text-sm mt-1">
+          <div *ngIf="userForm.get('roles')?.errors?.['required']">Debes asignar al menos un rol.</div>
+        </div>
+      </div>
+    
+      <!-- Botones -->
+      <div class="flex gap-4">
+        <button type="submit" [disabled]="userForm.invalid" class="bg-[#5c8e00] hover:bg-[#5c8e00a8] cursor-pointer text-white font-bold py-2 px-6 rounded-lg shadow transition">
+          {{ editingUserId ? 'Update User' : 'Create User' }}
+        </button>
+    
+        <button type="button" (click)="resetForm()" *ngIf="editingUserId" class="bg-gray-500 hover:bg-gray-600 cursor-pointer text-white font-bold py-2 px-6 rounded-lg shadow transition">
+          Cancel
+        </button>
+      </div>
+    
+    </form>    
+
+		<!-- Tabla de usuarios -->
+    <div [ngClass]="{'opacity-0': !animateTable, 'opacity-100 transition-opacity duration-500': animateTable}" class="overflow-x-auto rounded-md border border-gray-700">
+      <table class="w-full table-auto text-left text-gray-300 shadow">
+        
+        <!-- CABECERA solo visible en pantallas grandes -->
+        <thead class="hidden md:table-header-group bg-gray-700">
+          <tr>
+            <th class="p-3">ID</th>
+            <th class="p-3">Email</th>
+            <th class="p-3">Roles</th>
+            <th class="p-3">Actions</th>
+          </tr>
+        </thead>
+    
+        <tbody>
+          <tr *ngFor="let user of users" class="flex flex-col md:table-row border-t border-gray-700 p-4">
+    
+            <td class="p-2 md:p-3 relative">
+              <span class="block md:hidden text-gray-400 font-bold">ID</span>
+              {{ user.id }}
+            </td>
+    
+            <td class="p-2 md:p-3 relative">
+              <span class="block md:hidden text-gray-400 font-bold">Email</span>
+              {{ user.email }}
+            </td>
+    
+            <td class="p-2 md:p-3 relative">
+              <span class="block md:hidden text-gray-400 font-bold">Roles</span>
+              {{ user.roles.join(', ') }}
+            </td>
+    
+            <td class="p-2 md:p-3 flex gap-4 relative">
+              <span class="block md:hidden text-gray-400 font-bold">Actions</span>
+              <button (click)="editUser(user)" class="text-amber-500 hover:text-amber-600 font-bold text-sm cursor-pointer">
+                Edit
+              </button>
+              <button (click)="deleteUser(user.id)" class="text-red-400 hover:text-red-500 font-bold text-sm cursor-pointer">
+                Delete
+              </button>
+            </td>
+    
+          </tr>
+        </tbody>
+    
+      </table>
+    </div>    
+
+	</div>
+</div>

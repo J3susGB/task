@@ -5,8 +5,6 @@ import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 
-import { ToastrService } from 'ngx-toastr'; // <--- ¡Nuevo!
-
 @Component({
   selector: 'app-projects',
   standalone: true,
@@ -33,7 +31,6 @@ export class ProjectsComponent implements OnInit {
     private router: Router,
     private fb: FormBuilder,
     private authService: AuthService,
-    private toastr: ToastrService // <--- ¡Nuevo!
   ) {
     this.projectForm = this.fb.group({
       title: ['', Validators.required],
@@ -121,13 +118,9 @@ export class ProjectsComponent implements OnInit {
   canAccessProject(project: any): boolean {
     return project.user === this.currentUserEmail;
   }
-
+    
   showNoAccess(): void {
-    this.toastr.warning(
-      '<span style="font-size: 1.5rem; margin-right: 8px;">⚠️</span> No puedes acceder a las tareas de este proyecto.',
-      'Acceso Denegado'
-    );
-  }  
-  
+    alert('You do not have access to this project.');
+  }
   
 }

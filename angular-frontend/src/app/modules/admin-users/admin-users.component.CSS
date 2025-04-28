@@ -1,0 +1,26 @@
+/* Estilos generales */
+:host {
+  display: block;
+}
+
+/* Estilo del formulario */
+form {
+  transition: background-color 0.3s ease;
+}
+
+/* Cuando estás editando (se aplica clase condicional) */
+.editing-form {
+  background-color: #374151; /* Gris un poco más claro */
+  border: 2px solid #5c8e00; /* Verde de tu paleta */
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+/* Botones */
+button {
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
